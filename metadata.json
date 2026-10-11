@@ -2,7 +2,7 @@
     "KPlugin": {
         "Id": "org.kde.plasma.sysmonitor.modern",
         "Name": "Modern SysMonitor",
-        "Description": "Monitor de sistema moderno e transparente (CPU, GPU, RAM, Rede)",
+        "Description": "Modern, transparent system monitor (CPU, GPU, RAM, Network)",
         "Icon": "utilities-system-monitor",
         "Version": "1.1",
         "Authors": [

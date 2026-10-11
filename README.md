@@ -10,14 +10,15 @@ A sleek, glassmorphic system monitor widget (plasmoid) for **KDE Plasma 6** feat
 - **CPU**: Real-time core load displayed in a glowing segmented bar, alongside CPU package temperatures using a smooth horizontal gradient bar.
 - **RAM**: Memory utilization (used vs total GB) shown with a 26-segment level bar.
 - **GPU (Nvidia)**: Direct utilization and temperature tracking for Nvidia graphics cards (tested on RTX 4060).
-- **VRAM**: GPU memory consumption.
+- **GPU (AMD)**: Utilization and temperature (junction, falling back to edge) read from `amdgpu` sysfs when `nvidia-smi` is not available. If there is more than one AMD GPU, the one with the most VRAM is used, so a dedicated card wins over an iGPU.
+- **VRAM**: GPU memory consumption (Nvidia or AMD).
 - **Glassmorphism Design**: Semi-transparent dark background with fine glowing borders, utilizing native Breeze system vector icons (`Kirigami.Icon`).
 
 ## Requirements
 
 - **KDE Plasma**: Version 6.0 or higher.
-- **Nvidia CLI**: `nvidia-smi` must be installed (for GPU/VRAM sensors).
-- **lm_sensors**: Configured on the system for CPU temperatures.
+- **GPU sensors**: `nvidia-smi` for Nvidia cards; AMD cards need only the `amdgpu` kernel driver.
+- **CPU temperature**: Read from hwmon (`coretemp` on Intel, `k10temp` or `zenpower` on AMD).
 - **Python 3**: For running the lightweight, non-blocking stats collection script.
 
 ## Installation

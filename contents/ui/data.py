@@ -27,7 +27,8 @@ def read_cpu_temp():
             name_file = os.path.join(path, "name")
             if os.path.exists(name_file):
                 with open(name_file, "r") as f:
-                    if f.read().strip() == "coretemp":
+                    # coretemp = Intel, k10temp = AMD (temp1 is Tctl)
+                    if f.read().strip() in ("coretemp", "k10temp", "zenpower"):
                         temp_file = os.path.join(path, "temp1_input")
                         if os.path.exists(temp_file):
                             with open(temp_file, "r") as tf:
@@ -105,7 +106,55 @@ def read_gpu():
             return gpu_usage, gpu_temp, vram_used_gb, vram_total_gb, vram_pct
     except Exception:
         pass
+    try:
+        return read_amdgpu()
+    except Exception:
+        pass
     return 0.0, 0.0, 0.0, 0.0, 0.0
+
+def read_sysfs(path):
+    with open(path, "r") as f:
+        return f.read().strip()
+
+def read_amdgpu():
+    # Pick the AMD card with the most VRAM, so a dedicated GPU wins over the iGPU
+    best = None
+    for card in os.listdir("/sys/class/drm"):
+        if not card.startswith("card") or "-" in card:
+            continue
+        dev = os.path.join("/sys/class/drm", card, "device")
+        try:
+            if read_sysfs(os.path.join(dev, "vendor")) != "0x1002":
+                continue
+            vram_total = float(read_sysfs(os.path.join(dev, "mem_info_vram_total")))
+        except Exception:
+            continue
+        if best is None or vram_total > best[1]:
+            best = (dev, vram_total)
+    if best is None:
+        raise RuntimeError("no amdgpu found")
+
+    dev, vram_total = best
+    gpu_usage = float(read_sysfs(os.path.join(dev, "gpu_busy_percent")))
+    vram_used = float(read_sysfs(os.path.join(dev, "mem_info_vram_used")))
+
+    gpu_temp = 0.0
+    hwmon_root = os.path.join(dev, "hwmon")
+    for hwmon in os.listdir(hwmon_root):
+        path = os.path.join(hwmon_root, hwmon)
+        # Prefer junction (hotspot) temp, fall back to edge
+        for label in ("junction", "edge"):
+            for i in (1, 2, 3):
+                label_file = os.path.join(path, f"temp{i}_label")
+                if os.path.exists(label_file) and read_sysfs(label_file) == label:
+                    gpu_temp = float(read_sysfs(os.path.join(path, f"temp{i}_input"))) / 1000.0
+                    break
+            if gpu_temp:
+                break
+
+    gib = 1024.0 ** 3
+    vram_pct = (vram_used / vram_total * 100.0) if vram_total > 0 else 0.0
+    return gpu_usage, gpu_temp, vram_used / gib, vram_total / gib, vram_pct
 
 def main():
     curr_time = time.time()
